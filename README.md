@@ -176,8 +176,8 @@ upnpserver/src/main/java/com/eversolo/upnpserver/dlna/
 ## 联系方式
 
 如有问题或建议，请通过以下方式联系：
-- 项目地址：[Eversolo DLNA Music Server](https://github.com/yourusername/eversolo-dlna-music-server)
-- 电子邮件：your.email@example.com
+- 项目地址：[Eversolo DLNA Music Server](https://github.com/fuyan2021/UpnpServer.git)
+- 电子邮件：hammer810@163.com
 
 ---
 

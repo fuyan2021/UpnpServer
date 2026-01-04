@@ -18,6 +18,10 @@
     <permission
         android:name="com.zxt.dlna.permission.SEND_BROADCAST"
         android:protectionLevel="signature" />
+    <!-- 声明受保护广播 -->
+    <protected-broadcast android:name="com.zxt.dlna.ACTION_START_SERVER" />
+    <protected-broadcast android:name="com.zxt.dlna.ACTION_STOP_SERVER" />
+    <protected-broadcast android:name="com.zxt.dlna.ACTION_REFRESH_DATA" />
 
     <application
         android:name="com.eversolo.upnpserver.dlna.application.BaseApplication"
