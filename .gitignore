@@ -77,7 +77,7 @@ jspm_packages/
 # Module specific build directories
 app/build/
 upnpserver/build/
-.svn/
+svn/
 
 # Gradle wrapper
 !.gradle/wrapper/gradle-wrapper.jar
