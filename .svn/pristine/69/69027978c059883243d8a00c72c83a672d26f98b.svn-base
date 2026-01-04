@@ -1,0 +1,19 @@
+package com.eversolo.upnpserver.dlna.dms;
+
+/**
+ * Created by fuyan
+ * 2025/12/26
+ **/
+public class Constant {
+    public final static String DSF_SETTING_NAME = "cling_open_dsf_dff"; //1开，0关
+    // 广播动作常量
+    public static final String ACTION_START_SERVER = "com.zxt.dlna.ACTION_START_SERVER";
+    public static final String ACTION_STOP_SERVER = "com.zxt.dlna.ACTION_STOP_SERVER";
+    public static final String ACTION_REFRESH_DATA = "com.zxt.dlna.ACTION_REFRESH_DATA";
+    //cling upnp服务开关
+    public static final String CLING_SETTING_NAME = "cling_settings";
+    public final static String LOGTAG = "EversoloLibraryService";
+    public final static String count = "100";
+    //自定义广播的权限
+    public final static String DLNA_BROADCAST_PERMISSION = "com.zxt.dlna.permission.SEND_BROADCAST";
+}

@@ -1,0 +1,1274 @@
+package com.eversolo.upnpserver.dlna.dms.loader;
+
+import static com.eversolo.upnpserver.dlna.dms.Constant.LOGTAG;
+import static com.eversolo.upnpserver.dlna.dms.Constant.count;
+import static com.eversolo.upnpserver.dlna.dms.Constant.DSF_SETTING_NAME;
+
+import android.content.Context;
+import android.provider.Settings;
+import android.util.Log;
+
+import com.eversolo.upnpserver.dlna.R;
+import com.eversolo.upnpserver.dlna.application.BaseApplication;
+import com.eversolo.upnpserver.dlna.dms.ContentNode;
+import com.eversolo.upnpserver.dlna.dms.ContentTree;
+import com.eversolo.upnpserver.dlna.dms.bean.AlbumInfo;
+import com.eversolo.upnpserver.dlna.dms.bean.ArtistInfo;
+import com.eversolo.upnpserver.dlna.dms.bean.AudioInfo;
+import com.eversolo.upnpserver.dlna.dms.bean.ComposerInfo;
+import com.eversolo.upnpserver.dlna.dms.bean.GenreInfo;
+import com.eversolo.upnpserver.dlna.util.ApiClient;
+import com.eversolo.upnpserver.dlna.util.FileHelper;
+
+import org.fourthline.cling.support.model.DIDLObject;
+import org.fourthline.cling.support.model.PersonWithRole;
+import org.fourthline.cling.support.model.Res;
+import org.fourthline.cling.support.model.WriteStatus;
+import org.fourthline.cling.support.model.container.Container;
+import org.fourthline.cling.support.model.item.MusicTrack;
+import org.seamless.util.MimeType;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Created by fuyan
+ * 2025/12/26
+ **/
+public class ContainerLoader {
+    private Context context;
+
+    private static volatile ContainerLoader instance;
+
+    private ContainerLoader(Context context) {
+        this.context = context.getApplicationContext(); // 使用ApplicationContext避免内存泄漏
+    }
+
+    /**
+     * 获取单例实例
+     */
+    public static ContainerLoader getInstance(Context context) {
+        if (instance == null) {
+            synchronized (ContainerLoader.class) {
+                if (instance == null) {
+                    instance = new ContainerLoader(context);
+                }
+            }
+        }
+        return instance;
+    }
+
+
+    /**
+     * 创建或更新专辑艺术家容器
+     */
+    public void createOrUpdateAlbumArtistContainer(ContentNode rootNode, List<ArtistInfo> albumArtistInfoList) {
+        // 首先检查专辑艺术家容器是否已存在，如果不存在则创建
+        if (!ContentTree.hasNode(ContentTree.ALBUM_ARTIST_ID)) {
+            // 创建专辑艺术家容器对象
+            Container albumArtistContainer = new Container(
+                    ContentTree.ALBUM_ARTIST_ID,        // 容器ID
+                    ContentTree.ROOT_ID,         // 父容器ID
+                    context.getString(R.string.container_album_artists),   // 容器标题
+                    "GNaP MediaServer",         // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                           // 子项计数
+            );
+            albumArtistContainer.setRestricted(true);
+            albumArtistContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将专辑艺术家容器添加到根节点
+            rootNode.getContainer().addContainer(albumArtistContainer);
+            // 更新根节点的子容器计数
+            rootNode.getContainer().setChildCount(rootNode.getContainer().getChildCount() + 1);
+            // 将专辑艺术家容器添加到内容树
+            ContentTree.addNode(ContentTree.ALBUM_ARTIST_ID, new ContentNode(
+                    ContentTree.ALBUM_ARTIST_ID, albumArtistContainer
+            ));
+        }
+
+        // 从ContentTree中获取专辑艺术家容器，确保使用的是同一个对象实例
+        Container albumArtistContainer = ContentTree.getNode(ContentTree.ALBUM_ARTIST_ID).getContainer();
+        // 为每个专辑艺术家创建子容器
+        // 首先清空现有子容器，确保重新创建
+        albumArtistContainer.getContainers().clear();
+        int albumArtistChildCount = 0;
+
+        for (ArtistInfo albumArtistInfo : albumArtistInfoList) {
+            // 使用更简单的ID格式，避免复合ID可能导致的问题
+            String albumArtistFoldId = "album_artist_" + albumArtistInfo.getId();
+
+            // 创建专辑艺术家子容器
+            Container albumArtistSubContainer = new Container(
+                    albumArtistFoldId,                   // 唯一的容器ID
+                    ContentTree.ALBUM_ARTIST_ID,          // 父容器ID
+                    albumArtistInfo.getName(),           // 容器标题（专辑艺术家名称）
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    2                               // 子项计数（专辑）
+            );
+            albumArtistSubContainer.setRestricted(true);
+            albumArtistSubContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 设置专辑艺术家图片URL
+            try {
+                // 构建专辑艺术家图片URL
+                String imageUrl = String.format("http://127.0.0.1:9529/ZidooMusicControl/v2/getImage?id=%d&musicType=0&type=2&target=0x020",
+                        albumArtistInfo.getId());
+                // 添加albumArtURI属性
+                albumArtistSubContainer.addProperty(new DIDLObject.Property.UPNP.ALBUM_ART_URI(
+                        new java.net.URI(imageUrl)));
+            } catch (Exception e) {
+                Log.e(LOGTAG, "设置专辑艺术家图片URL失败: " + e.getMessage());
+            }
+
+            // 关键：将子容器添加到父容器的子容器列表中
+            albumArtistContainer.addContainer(albumArtistSubContainer);
+            albumArtistChildCount++;
+
+            // 确保子容器存在于ContentTree中
+            if (!ContentTree.hasNode(albumArtistFoldId)) {
+                ContentTree.addNode(albumArtistFoldId, new ContentNode(albumArtistFoldId, albumArtistSubContainer));
+            } else {
+                // 更新ContentTree中的子容器引用
+                ContentTree.addNode(albumArtistFoldId, new ContentNode(albumArtistFoldId, albumArtistSubContainer));
+            }
+
+            // 为专辑艺术家子容器添加专辑子容器
+            String albumArtistAlbumId = albumArtistFoldId + "_albums";
+            Container albumArtistAlbumContainer = new Container(
+                    albumArtistAlbumId,                  // 唯一的容器ID
+                    albumArtistFoldId,                   // 父容器ID
+                    "专辑",                         // 容器标题
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                               // 子项计数
+            );
+
+            albumArtistAlbumContainer.setRestricted(true);
+            albumArtistAlbumContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将专辑子容器添加到专辑艺术家子容器
+            albumArtistSubContainer.addContainer(albumArtistAlbumContainer);
+
+            // 确保专辑子容器存在于ContentTree中
+            if (!ContentTree.hasNode(albumArtistAlbumId)) {
+                ContentTree.addNode(albumArtistAlbumId, new ContentNode(albumArtistAlbumId, albumArtistAlbumContainer));
+            }
+
+            // 为专辑艺术家子容器添加单曲子容器
+            String albumArtistMusicContainerId = albumArtistFoldId + "_musics";
+            Container albumArtistMusicContainer = new Container(
+                    albumArtistMusicContainerId,         // 唯一的容器ID
+                    albumArtistFoldId,                   // 父容器ID
+                    "单曲",                         // 容器标题
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                               // 子项计数
+            );
+
+            albumArtistMusicContainer.setRestricted(true);
+            albumArtistMusicContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将单曲子容器添加到专辑艺术家子容器
+            albumArtistSubContainer.addContainer(albumArtistMusicContainer);
+
+            // 确保单曲子容器存在于ContentTree中
+            if (!ContentTree.hasNode(albumArtistMusicContainerId)) {
+                ContentTree.addNode(albumArtistMusicContainerId, new ContentNode(albumArtistMusicContainerId, albumArtistMusicContainer));
+            }
+
+            // 使用/getArtistAlbums接口获取该艺术家的专辑列表
+            if (ApiClient.getInstance() != null) {
+                Map<String, String> params = new HashMap<>();
+                params.put("id", String.valueOf(albumArtistInfo.getId()));
+                params.put("start", "0");
+                params.put("count", count);
+                params.put("artistType", "1");
+                ApiClient.getInstance().getArtistAlbums(params, new ApiClient.ApiCallback<ApiClient.AlbumResponse>() {
+                    @Override
+                    public void onSuccess(ApiClient.AlbumResponse response) {
+                        if (response != null && response.getArray() != null) {
+                            List<AlbumInfo> artistAlbums = response.getArray();
+                            int albumCount = 0;
+
+                            for (AlbumInfo albumInfo : artistAlbums) {
+                                // 为专辑创建子容器
+                                String albumSubFoldId = albumArtistAlbumId + "_album_" + albumInfo.getId();
+                                Container albumSubContainer = new Container(
+                                        albumSubFoldId,              // 唯一的容器ID
+                                        albumArtistAlbumId,               // 父容器ID
+                                        albumInfo.getName(),         // 容器标题（专辑名称）
+                                        "GNaP MediaServer",         // 创建者
+                                        new DIDLObject.Class("object.container"), // 容器类型
+                                        0                           // 子项计数
+                                );
+                                albumSubContainer.setRestricted(true);
+                                albumSubContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+                                // 将专辑子容器添加到艺术家专辑容器
+                                albumArtistAlbumContainer.addContainer(albumSubContainer);
+                                albumCount++;
+
+                                // 确保专辑子容器存在于ContentTree中
+                                if (!ContentTree.hasNode(albumSubFoldId)) {
+                                    ContentTree.addNode(albumSubFoldId, new ContentNode(albumSubFoldId, albumSubContainer));
+                                } else {
+                                    // 更新ContentTree中的子容器引用
+                                    ContentTree.addNode(albumSubFoldId, new ContentNode(albumSubFoldId, albumSubContainer));
+                                }
+
+                                // 使用albumTypeId参数调用getAlbumMusics接口获取该艺术家的专辑歌曲
+                                loadAlbumMusicsForArtist(albumSubContainer, albumSubFoldId, albumInfo, String.valueOf(albumArtistInfo.getId()), 0);
+                            }
+
+                            // 更新艺术家专辑容器的子容器计数
+                            albumArtistAlbumContainer.setChildCount(albumCount);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(String errorMsg) {
+                        Log.e(LOGTAG, "获取艺术家专辑列表失败: " + errorMsg);
+                    }
+                });
+
+                // 使用/getArtistMusics接口获取该艺术家的单曲列表
+                Map<String, String> musicParams = new HashMap<>();
+                musicParams.put("id", String.valueOf(albumArtistInfo.getId()));
+                musicParams.put("start", "0");
+                musicParams.put("count", count);
+                params.put("artistType", "1");
+                params.put("needParse", String.valueOf(true));
+                ApiClient.getInstance().getArtistMusics(musicParams, new ApiClient.ApiCallback<ApiClient.MusicResponse>() {
+                    @Override
+                    public void onSuccess(ApiClient.MusicResponse response) {
+                        if (response != null && response.getArray() != null) {
+                            List<AudioInfo> artistMusics = response.getArray();
+
+                            // 将歌曲添加到歌曲列表子容器
+                            addApiMusicToContainer(artistMusics, albumArtistMusicContainer);
+
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(String errorMsg) {
+                        Log.e(LOGTAG, "获取艺术家单曲列表失败: " + errorMsg);
+                    }
+                });
+            } else {
+                Log.e(LOGTAG, "apiClient为空，无法获取艺术家专辑和单曲列表");
+            }
+        }
+
+        // 更新专辑艺术家容器的子容器计数
+        albumArtistContainer.setChildCount(albumArtistChildCount);
+    }
+
+
+    /**
+     * 创建或更新艺术家容器
+     */
+    public void createOrUpdateArtistContainer(ContentNode rootNode, List<ArtistInfo> artistInfoList) {
+        // 首先检查艺术家容器是否已存在，如果不存在则创建
+        if (!ContentTree.hasNode(ContentTree.ARTIST_ID)) {
+            // 创建艺术家容器对象
+            Container artistContainer = new Container(
+                    ContentTree.ARTIST_ID,        // 容器ID
+                    ContentTree.ROOT_ID,         // 父容器ID
+                    context.getString(R.string.container_artists),   // 容器标题
+                    "GNaP MediaServer",         // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                           // 子项计数
+            );
+            artistContainer.setRestricted(true);
+            artistContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将艺术家容器添加到根节点
+            rootNode.getContainer().addContainer(artistContainer);
+            // 更新根节点的子容器计数
+            rootNode.getContainer().setChildCount(rootNode.getContainer().getChildCount() + 1);
+            // 将艺术家容器添加到内容树
+            ContentTree.addNode(ContentTree.ARTIST_ID, new ContentNode(
+                    ContentTree.ARTIST_ID, artistContainer
+            ));
+        }
+
+        // 从ContentTree中获取艺术家容器，确保使用的是同一个对象实例
+        Container artistContainer = ContentTree.getNode(ContentTree.ARTIST_ID).getContainer();
+        // 为每个艺术家创建子容器
+        // 首先清空现有子容器，确保重新创建
+        artistContainer.getContainers().clear();
+        int artistChildCount = 0;
+
+        for (ArtistInfo artistInfo : artistInfoList) {
+            // 使用更简单的ID格式，避免复合ID可能导致的问题
+            String artistFoldId = "artist_" + artistInfo.getId();
+
+            // 创建艺术家子容器
+            Container artistSubContainer = new Container(
+                    artistFoldId,                   // 唯一的容器ID
+                    ContentTree.ARTIST_ID,          // 父容器ID
+                    artistInfo.getName(),           // 容器标题（艺术家名称）
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    2                               // 子项计数（专辑）
+            );
+            artistSubContainer.setRestricted(true);
+            artistSubContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 设置艺术家图片URL
+            try {
+                // 构建艺术家图片URL
+                String imageUrl = String.format("http://127.0.0.1:9529/ZidooMusicControl/v2/getImage?id=%d&musicType=0&type=2&target=0x020",
+                        artistInfo.getId());
+                // 添加albumArtURI属性
+                artistSubContainer.addProperty(new DIDLObject.Property.UPNP.ALBUM_ART_URI(
+                        new java.net.URI(imageUrl)));
+            } catch (Exception e) {
+                Log.e(LOGTAG, "设置艺术家图片URL失败: " + e.getMessage());
+            }
+
+            // 关键：将子容器添加到父容器的子容器列表中
+            artistContainer.addContainer(artistSubContainer);
+            artistChildCount++;
+
+            // 确保子容器存在于ContentTree中
+            if (!ContentTree.hasNode(artistFoldId)) {
+                ContentTree.addNode(artistFoldId, new ContentNode(artistFoldId, artistSubContainer));
+            } else {
+                // 更新ContentTree中的子容器引用
+                ContentTree.addNode(artistFoldId, new ContentNode(artistFoldId, artistSubContainer));
+            }
+
+            // 为艺术家子容器添加专辑子容器
+            String artistAlbumId = artistFoldId + "_albums";
+            Container artistAlbumContainer = new Container(
+                    artistAlbumId,                  // 唯一的容器ID
+                    artistFoldId,                   // 父容器ID
+                    context.getString(R.string.container_albums),                         // 容器标题
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                               // 子项计数
+            );
+
+            artistAlbumContainer.setRestricted(true);
+            artistAlbumContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将专辑子容器添加到艺术家子容器
+            artistSubContainer.addContainer(artistAlbumContainer);
+
+            // 确保专辑子容器存在于ContentTree中
+            if (!ContentTree.hasNode(artistAlbumId)) {
+                ContentTree.addNode(artistAlbumId, new ContentNode(artistAlbumId, artistAlbumContainer));
+            }
+
+            // 为艺术家子容器添加单曲子容器
+            String artistMusicContainerId = artistFoldId + "_musics";
+            Container artistMusicContainer = new Container(
+                    artistMusicContainerId,         // 唯一的容器ID
+                    artistFoldId,                   // 父容器ID
+                    context.getString(R.string.container_audios),                         // 容器标题
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                               // 子项计数
+            );
+
+            artistMusicContainer.setRestricted(true);
+            artistMusicContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将单曲子容器添加到艺术家子容器
+            artistSubContainer.addContainer(artistMusicContainer);
+
+            // 确保单曲子容器存在于ContentTree中
+            if (!ContentTree.hasNode(artistMusicContainerId)) {
+                ContentTree.addNode(artistMusicContainerId, new ContentNode(artistMusicContainerId, artistMusicContainer));
+            }
+
+
+            // 使用/getArtistAlbums接口获取该艺术家的专辑列表
+            if (ApiClient.getInstance() != null) {
+                Map<String, String> params = new HashMap<>();
+                params.put("id", String.valueOf(artistInfo.getId()));
+                params.put("start", "0");
+                params.put("count", count);
+
+                ApiClient.getInstance().getArtistAlbums(params, new ApiClient.ApiCallback<ApiClient.AlbumResponse>() {
+                    @Override
+                    public void onSuccess(ApiClient.AlbumResponse response) {
+                        if (response != null && response.getArray() != null) {
+                            List<AlbumInfo> artistAlbums = response.getArray();
+                            int albumCount = 0;
+
+                            for (AlbumInfo albumInfo : artistAlbums) {
+                                // 为专辑创建子容器
+                                String albumSubFoldId = artistAlbumId + "_album_" + albumInfo.getId();
+                                Container albumSubContainer = new Container(
+                                        albumSubFoldId,              // 唯一的容器ID
+                                        artistAlbumId,               // 父容器ID
+                                        albumInfo.getName(),         // 容器标题（专辑名称）
+                                        "GNaP MediaServer",         // 创建者
+                                        new DIDLObject.Class("object.container"), // 容器类型
+                                        0                           // 子项计数
+                                );
+                                albumSubContainer.setRestricted(true);
+                                albumSubContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+                                // 将专辑子容器添加到艺术家专辑容器
+                                artistAlbumContainer.addContainer(albumSubContainer);
+                                albumCount++;
+
+                                // 确保专辑子容器存在于ContentTree中
+                                if (!ContentTree.hasNode(albumSubFoldId)) {
+                                    ContentTree.addNode(albumSubFoldId, new ContentNode(albumSubFoldId, albumSubContainer));
+                                } else {
+                                    // 更新ContentTree中的子容器引用
+                                    ContentTree.addNode(albumSubFoldId, new ContentNode(albumSubFoldId, albumSubContainer));
+                                }
+
+                                // 使用albumTypeId参数调用getAlbumMusics接口获取该艺术家的专辑歌曲
+                                loadAlbumMusicsForArtist(albumSubContainer, albumSubFoldId, albumInfo, String.valueOf(artistInfo.getId()), 0);
+                            }
+
+                            // 更新艺术家专辑容器的子容器计数
+                            artistAlbumContainer.setChildCount(albumCount);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(String errorMsg) {
+                        Log.e(LOGTAG, "获取艺术家专辑列表失败: " + errorMsg);
+                    }
+                });
+
+                // 使用/getArtistMusics接口获取该艺术家的单曲列表
+                Map<String, String> musicParams = new HashMap<>();
+                musicParams.put("id", String.valueOf(artistInfo.getId()));
+                musicParams.put("start", "0");
+                musicParams.put("count", count);
+                params.put("needParse", String.valueOf(true));
+                ApiClient.getInstance().getArtistMusics(musicParams, new ApiClient.ApiCallback<ApiClient.MusicResponse>() {
+                    @Override
+                    public void onSuccess(ApiClient.MusicResponse response) {
+                        if (response != null && response.getArray() != null) {
+                            List<AudioInfo> artistMusics = response.getArray();
+
+                            // 将歌曲添加到歌曲列表子容器
+                            addApiMusicToContainer(artistMusics, artistMusicContainer);
+
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(String errorMsg) {
+                        Log.e(LOGTAG, "获取艺术家单曲列表失败: " + errorMsg);
+                    }
+                });
+            } else {
+                Log.e(LOGTAG, "apiClient为空，无法获取艺术家专辑和单曲列表");
+            }
+        }
+
+        // 更新艺术家容器的子容器计数
+        artistContainer.setChildCount(artistChildCount);
+    }
+
+    /**
+     * 创建或更新音频容器
+     */
+    public Container createOrUpdateAudioContainer(ContentNode rootNode) {
+        Container audioContainer;
+        // 检查音频容器是否已存在
+        if (ContentTree.hasNode(ContentTree.AUDIO_ID)) {
+            // 获取现有容器
+            audioContainer = ContentTree.getNode(ContentTree.AUDIO_ID).getContainer();
+            // 清空现有子项，以便重新加载
+            if (audioContainer.getContainers() != null) {
+                audioContainer.getContainers().clear();
+            }
+            if (audioContainer.getItems() != null) {
+                audioContainer.getItems().clear();
+            }
+            audioContainer.setChildCount(0);
+        } else {
+            // 创建新的音频容器对象
+            audioContainer = new Container(
+                    ContentTree.AUDIO_ID,         // 容器ID
+                    ContentTree.ROOT_ID,          // 父容器ID
+                    context.getString(R.string.container_audios),  // 容器标题
+                    "GNaP MediaServer",          // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                            // 子项计数
+            );
+            audioContainer.setRestricted(true); // 设置为受限容器
+            audioContainer.setWriteStatus(WriteStatus.NOT_WRITABLE); // 设置为不可写
+
+            // 将音频容器添加到根节点
+            rootNode.getContainer().addContainer(audioContainer);
+            // 更新根节点的子容器计数
+            rootNode.getContainer().setChildCount(
+                    rootNode.getContainer().getChildCount() + 1);
+            // 将音频容器添加到内容树
+            ContentTree.addNode(ContentTree.AUDIO_ID, new ContentNode(
+                    ContentTree.AUDIO_ID, audioContainer));
+        }
+        return audioContainer;
+    }
+
+
+    /**
+     * 创建或更新作曲家容器
+     */
+    public void createOrUpdateComposerContainer(ContentNode rootNode, List<ComposerInfo> composerInfoList) {
+        // 首先检查作曲家容器是否已存在，如果不存在则创建
+        if (!ContentTree.hasNode(ContentTree.COMPOSER_ID)) {
+            // 创建作曲家容器对象
+            Container composerContainer = new Container(
+                    ContentTree.COMPOSER_ID,        // 容器ID
+                    ContentTree.ROOT_ID,         // 父容器ID
+                    context.getString(R.string.container_composers),   // 容器标题
+                    "GNaP MediaServer",         // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                           // 子项计数
+            );
+            composerContainer.setRestricted(true);
+            composerContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将作曲家容器添加到根节点
+            rootNode.getContainer().addContainer(composerContainer);
+            // 更新根节点的子容器计数
+            rootNode.getContainer().setChildCount(rootNode.getContainer().getChildCount() + 1);
+            // 将作曲家容器添加到内容树
+            ContentTree.addNode(ContentTree.COMPOSER_ID, new ContentNode(
+                    ContentTree.COMPOSER_ID, composerContainer
+            ));
+        }
+
+        // 从ContentTree中获取作曲家容器，确保使用的是同一个对象实例
+        Container composerContainer = ContentTree.getNode(ContentTree.COMPOSER_ID).getContainer();
+        // 为每个作曲家创建子容器
+        // 首先清空现有子容器，确保重新创建
+        composerContainer.getContainers().clear();
+        int composerChildCount = 0;
+
+        for (ComposerInfo composerInfo : composerInfoList) {
+            // 使用更简单的ID格式，避免复合ID可能导致的问题
+            String composerFoldId = "composer_" + composerInfo.getId();
+
+            // 创建作曲家子容器
+            Container composerSubContainer = new Container(
+                    composerFoldId,                   // 唯一的容器ID
+                    ContentTree.COMPOSER_ID,          // 父容器ID
+                    composerInfo.getName(),           // 容器标题（作曲家名称）
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    1                               // 子项计数（专辑）
+            );
+            composerSubContainer.setRestricted(true);
+            composerSubContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 关键：将子容器添加到父容器的子容器列表中
+            composerContainer.addContainer(composerSubContainer);
+            composerChildCount++;
+
+            // 确保子容器存在于ContentTree中
+            if (!ContentTree.hasNode(composerFoldId)) {
+                ContentTree.addNode(composerFoldId, new ContentNode(composerFoldId, composerSubContainer));
+            } else {
+                // 更新ContentTree中的子容器引用
+                ContentTree.addNode(composerFoldId, new ContentNode(composerFoldId, composerSubContainer));
+            }
+
+            // 为作曲家子容器添加专辑子容器
+            String composerAlbumId = composerFoldId + "_albums";
+            Container composerAlbumContainer = new Container(
+                    composerAlbumId,                  // 唯一的容器ID
+                    composerFoldId,                   // 父容器ID
+                    "专辑",                         // 容器标题
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                               // 子项计数
+            );
+            composerAlbumContainer.setRestricted(true);
+            composerAlbumContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将专辑子容器添加到作曲家子容器
+            composerSubContainer.addContainer(composerAlbumContainer);
+
+            // 确保专辑子容器存在于ContentTree中
+            if (!ContentTree.hasNode(composerAlbumId)) {
+                ContentTree.addNode(composerAlbumId, new ContentNode(composerAlbumId, composerAlbumContainer));
+            }
+
+            // 使用/getComposerAlbumList接口获取该作曲家的专辑列表
+            if (ApiClient.getInstance() != null) {
+                Map<String, String> params = new HashMap<>();
+                params.put("id", String.valueOf(composerInfo.getId()));
+                params.put("start", "0");
+                params.put("count", count);
+
+                ApiClient.getInstance().getComposerAlbumList(params, new ApiClient.ApiCallback<ApiClient.AlbumResponse>() {
+                    @Override
+                    public void onSuccess(ApiClient.AlbumResponse response) {
+                        if (response != null && response.getArray() != null) {
+                            List<AlbumInfo> composerAlbums = response.getArray();
+                            int albumCount = 0;
+
+                            for (AlbumInfo albumInfo : composerAlbums) {
+                                // 为专辑创建子容器
+                                String albumSubFoldId = composerAlbumId + "_album_" + albumInfo.getId();
+                                Container albumSubContainer = new Container(
+                                        albumSubFoldId,              // 唯一的容器ID
+                                        composerAlbumId,             // 父容器ID
+                                        albumInfo.getName(),         // 容器标题（专辑名称）
+                                        "GNaP MediaServer",         // 创建者
+                                        new DIDLObject.Class("object.container"), // 容器类型
+                                        0                           // 子项计数
+                                );
+                                albumSubContainer.setRestricted(true);
+                                albumSubContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+                                // 将专辑子容器添加到作曲家专辑容器
+                                composerAlbumContainer.addContainer(albumSubContainer);
+                                albumCount++;
+
+                                // 确保专辑子容器存在于ContentTree中
+                                if (!ContentTree.hasNode(albumSubFoldId)) {
+                                    ContentTree.addNode(albumSubFoldId, new ContentNode(albumSubFoldId, albumSubContainer));
+                                } else {
+                                    // 更新ContentTree中的子容器引用
+                                    ContentTree.addNode(albumSubFoldId, new ContentNode(albumSubFoldId, albumSubContainer));
+                                }
+
+                                // 使用albumTypeId参数调用getAlbumMusics接口获取该作曲家的专辑歌曲
+                                loadAlbumMusicsForArtist(albumSubContainer, albumSubFoldId, albumInfo, String.valueOf(composerInfo.getId()), 1);
+                            }
+
+                            // 更新作曲家专辑容器的子容器计数
+                            composerAlbumContainer.setChildCount(albumCount);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(String errorMsg) {
+                        Log.e(LOGTAG, "获取作曲家专辑列表失败: " + errorMsg);
+                    }
+                });
+            } else {
+                Log.e(LOGTAG, "apiClient为空，无法获取作曲家专辑列表");
+            }
+
+            // 为作曲家子容器添加单曲容器
+            String composerAudioId = composerFoldId + "_audios";
+            Container composerAudioContainer = new Container(
+                    composerAudioId,                  // 唯一的容器ID
+                    composerFoldId,                   // 父容器ID
+                    "单曲",                         // 容器标题
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                               // 子项计数
+            );
+            composerAudioContainer.setRestricted(true);
+            composerAudioContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将单曲子容器添加到作曲家子容器
+            composerSubContainer.addContainer(composerAudioContainer);
+
+            // 确保单曲子容器存在于ContentTree中
+            if (!ContentTree.hasNode(composerAudioId)) {
+                ContentTree.addNode(composerAudioId, new ContentNode(composerAudioId, composerAudioContainer));
+            }
+
+            // 使用/getComposerAudioList接口获取该作曲家的单曲列表
+            if (ApiClient.getInstance() != null) {
+                Map<String, String> params = new HashMap<>();
+                params.put("id", String.valueOf(composerInfo.getId()));
+                params.put("start", "0");
+                params.put("count", count);
+
+                ApiClient.getInstance().getComposerAudioList(params, new ApiClient.ApiCallback<ApiClient.MusicResponse>() {
+                    @Override
+                    public void onSuccess(ApiClient.MusicResponse response) {
+                        if (response != null && response.getArray() != null) {
+                            List<AudioInfo> composerAudios = response.getArray();
+
+                            // 将歌曲添加到单曲容器
+                            addApiMusicToContainer(composerAudios, composerAudioContainer);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(String errorMsg) {
+                        Log.e(LOGTAG, "获取作曲家单曲列表失败: " + errorMsg);
+                    }
+                });
+            } else {
+                Log.e(LOGTAG, "apiClient为空，无法获取作曲家单曲列表");
+            }
+
+
+        }
+
+        // 更新作曲家容器的子容器计数
+        composerContainer.setChildCount(composerChildCount);
+    }
+
+    /**
+     * 创建或更新流派容器
+     */
+    public void createOrUpdateGenreContainer(ContentNode rootNode, List<GenreInfo> genreInfoList) {
+        // 首先检查流派容器是否已存在，如果不存在则创建
+        if (!ContentTree.hasNode(ContentTree.GENRE_ID)) {
+            // 创建流派容器对象
+            Container genreContainer = new Container(
+                    ContentTree.GENRE_ID,        // 容器ID
+                    ContentTree.ROOT_ID,         // 父容器ID
+                    context.getString(R.string.container_genres),   // 容器标题
+                    "GNaP MediaServer",         // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                           // 子项计数
+            );
+            genreContainer.setRestricted(true);
+            genreContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将流派容器添加到根节点
+            rootNode.getContainer().addContainer(genreContainer);
+            // 更新根节点的子容器计数
+            rootNode.getContainer().setChildCount(rootNode.getContainer().getChildCount() + 1);
+            // 将流派容器添加到内容树
+            ContentTree.addNode(ContentTree.GENRE_ID, new ContentNode(
+                    ContentTree.GENRE_ID, genreContainer
+            ));
+        }
+
+        // 从ContentTree中获取流派容器，确保使用的是同一个对象实例
+        Container genreContainer = ContentTree.getNode(ContentTree.GENRE_ID).getContainer();
+        // 为每个流派创建子容器
+        // 首先清空现有子容器，确保重新创建
+        genreContainer.getContainers().clear();
+        int genreChildCount = 0;
+
+        for (GenreInfo genreInfo : genreInfoList) {
+            // 使用更简单的ID格式，避免复合ID可能导致的问题
+            String genreFoldId = "genre_" + genreInfo.getGenreId();
+
+            // 创建流派子容器
+            Container genreSubContainer = new Container(
+                    genreFoldId,                   // 唯一的容器ID
+                    ContentTree.GENRE_ID,          // 父容器ID
+                    genreInfo.getName(),           // 容器标题（流派名称）
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    1                               // 子项计数（专辑）
+            );
+            genreSubContainer.setRestricted(true);
+            genreSubContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 关键：将子容器添加到父容器的子容器列表中
+            genreContainer.addContainer(genreSubContainer);
+            genreChildCount++;
+
+            // 确保子容器存在于ContentTree中
+            if (!ContentTree.hasNode(genreFoldId)) {
+                ContentTree.addNode(genreFoldId, new ContentNode(genreFoldId, genreSubContainer));
+            } else {
+                // 更新ContentTree中的子容器引用
+                ContentTree.addNode(genreFoldId, new ContentNode(genreFoldId, genreSubContainer));
+            }
+
+            // 为流派子容器添加专辑子容器
+            String genreAlbumId = genreFoldId + "_albums";
+            Container genreAlbumContainer = new Container(
+                    genreAlbumId,                  // 唯一的容器ID
+                    genreFoldId,                   // 父容器ID
+                    "专辑",                         // 容器标题
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                               // 子项计数
+            );
+            genreAlbumContainer.setRestricted(true);
+            genreAlbumContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将专辑子容器添加到流派子容器
+            genreSubContainer.addContainer(genreAlbumContainer);
+
+            // 确保专辑子容器存在于ContentTree中
+            if (!ContentTree.hasNode(genreAlbumId)) {
+                ContentTree.addNode(genreAlbumId, new ContentNode(genreAlbumId, genreAlbumContainer));
+            }
+
+            // 为流派子容器添加单曲子容器
+            String genreMusicContainerId = genreFoldId + "_musics";
+            Container genreMusicContainer = new Container(
+                    genreMusicContainerId,         // 唯一的容器ID
+                    genreFoldId,                   // 父容器ID
+                    "单曲",                         // 容器标题
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                               // 子项计数
+            );
+
+            genreMusicContainer.setRestricted(true);
+            genreMusicContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将单曲子容器添加到流派子容器
+            genreSubContainer.addContainer(genreMusicContainer);
+
+            // 确保单曲子容器存在于ContentTree中
+            if (!ContentTree.hasNode(genreMusicContainerId)) {
+                ContentTree.addNode(genreMusicContainerId, new ContentNode(genreMusicContainerId, genreMusicContainer));
+            }
+
+            // 使用/getSingleMusics接口获取该流派的单曲列表
+            if (ApiClient.getInstance() != null) {
+                Map<String, String> params = new HashMap<>();
+                // genres参数应该是JSON格式的数组字符串
+                params.put("genres", "[" + genreInfo.getGenreId() + "]");
+                params.put("needParse", String.valueOf(true));
+                params.put("start", "0");
+                params.put("count", count);
+
+                ApiClient.getInstance().getSingleMusics(params, new ApiClient.ApiCallback<ApiClient.MusicResponse>() {
+                    @Override
+                    public void onSuccess(ApiClient.MusicResponse response) {
+                        if (response != null && response.getArray() != null) {
+                            List<AudioInfo> genreAudios = response.getArray();
+
+                            // 将歌曲添加到单曲子容器
+                            addApiMusicToContainer(genreAudios, genreMusicContainer);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(String errorMsg) {
+                        Log.e(LOGTAG, "获取流派单曲列表失败: " + errorMsg);
+                    }
+                });
+            } else {
+                Log.e(LOGTAG, "apiClient为空，无法获取流派单曲列表");
+            }
+
+            // 使用/getGenreAlbumList接口获取该流派的专辑列表
+            if (ApiClient.getInstance() != null) {
+                Map<String, String> params = new HashMap<>();
+                params.put("id", String.valueOf(genreInfo.getGenreId()));
+                params.put("start", "0");
+                params.put("count", count);
+
+                ApiClient.getInstance().getGenreAlbumList(params, new ApiClient.ApiCallback<ApiClient.AlbumResponse>() {
+                    @Override
+                    public void onSuccess(ApiClient.AlbumResponse response) {
+                        if (response != null && response.getArray() != null) {
+                            List<AlbumInfo> genreAlbums = response.getArray();
+                            int albumCount = 0;
+
+                            for (AlbumInfo albumInfo : genreAlbums) {
+                                // 为专辑创建子容器
+                                String albumSubFoldId = genreAlbumId + "_album_" + albumInfo.getId();
+                                Container albumSubContainer = new Container(
+                                        albumSubFoldId,              // 唯一的容器ID
+                                        genreAlbumId,                // 父容器ID
+                                        albumInfo.getName(),         // 容器标题（专辑名称）
+                                        "GNaP MediaServer",         // 创建者
+                                        new DIDLObject.Class("object.container"), // 容器类型
+                                        0                           // 子项计数
+                                );
+                                albumSubContainer.setRestricted(true);
+                                albumSubContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+                                // 将专辑子容器添加到流派专辑容器
+                                genreAlbumContainer.addContainer(albumSubContainer);
+                                albumCount++;
+
+                                // 确保专辑子容器存在于ContentTree中
+                                if (!ContentTree.hasNode(albumSubFoldId)) {
+                                    ContentTree.addNode(albumSubFoldId, new ContentNode(albumSubFoldId, albumSubContainer));
+                                } else {
+                                    // 更新ContentTree中的子容器引用
+                                    ContentTree.addNode(albumSubFoldId, new ContentNode(albumSubFoldId, albumSubContainer));
+                                }
+
+                                // 为专辑加载歌曲，albumType传2（流派类型），albumTypeId传流派ID
+                                loadAlbumMusicsForArtist(albumSubContainer, albumSubFoldId, albumInfo, String.valueOf(genreInfo.getGenreId()), 2);
+                            }
+
+                            // 更新流派专辑容器的子容器计数
+                            genreAlbumContainer.setChildCount(albumCount);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(String errorMsg) {
+                        Log.e(LOGTAG, "获取流派专辑列表失败: " + errorMsg);
+                    }
+                });
+            } else {
+                Log.e(LOGTAG, "apiClient为空，无法获取流派专辑列表");
+            }
+
+
+        }
+
+        // 更新流派容器的子容器计数
+        genreContainer.setChildCount(genreChildCount);
+    }
+
+    /**
+     * 创建或更新专辑容器
+     */
+    public void createOrUpdateAlbumContainer(ContentNode rootNode, List<AlbumInfo> albumInfoList) {
+        // 首先检查专辑容器是否已存在，如果不存在则创建
+        if (!ContentTree.hasNode(ContentTree.ALBUM_ID)) {
+            Container albumContainer = new Container(
+                    ContentTree.ALBUM_ID,        // 容器ID
+                    ContentTree.ROOT_ID,         // 父容器ID
+                    context.getString(R.string.container_albums),   // 容器标题
+                    "GNaP MediaServer",         // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                           // 子项计数
+            );
+            albumContainer.setRestricted(true);
+            albumContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 将专辑容器添加到根节点
+            rootNode.getContainer().addContainer(albumContainer);
+            // 更新根节点的子容器计数
+            rootNode.getContainer().setChildCount(rootNode.getContainer().getChildCount() + 1);
+            // 将专辑容器添加到内容树
+            ContentTree.addNode(ContentTree.ALBUM_ID, new ContentNode(
+                    ContentTree.ALBUM_ID, albumContainer
+            ));
+        }
+
+        // 从ContentTree中获取专辑容器，确保使用的是同一个对象实例
+        Container albumContainer = ContentTree.getNode(ContentTree.ALBUM_ID).getContainer();
+        // 为每个专辑创建子容器
+        // 首先清空现有子容器，确保重新创建
+        albumContainer.getContainers().clear();
+        int albumChildCount = 0;
+
+        for (AlbumInfo albumInfo : albumInfoList) {
+            // 使用更简单的ID格式，避免复合ID可能导致的问题
+            String albumFoldId = "album_" + albumInfo.getId();
+
+            // 创建专辑子容器
+            Container albumSubContainer = new Container(
+                    albumFoldId,                   // 唯一的容器ID
+                    ContentTree.ALBUM_ID,          // 父容器ID
+                    albumInfo.getName(),           // 容器标题（专辑名称）
+                    "GNaP MediaServer",            // 创建者
+                    new DIDLObject.Class("object.container"), // 容器类型
+                    0                               // 子项计数
+            );
+            albumSubContainer.setRestricted(true);
+            albumSubContainer.setWriteStatus(WriteStatus.NOT_WRITABLE);
+
+            // 设置专辑图片URL
+            try {
+                // 构建专辑图片URL
+                String imageUrl = String.format("http://127.0.0.1:9529/ZidooMusicControl/v2/getImage?id=%d&musicType=0&type=1&target=0x010",
+                        albumInfo.getId());
+                // 添加albumArtURI属性
+                albumSubContainer.addProperty(new DIDLObject.Property.UPNP.ALBUM_ART_URI(
+                        new java.net.URI(imageUrl)));
+            } catch (Exception e) {
+                Log.e(LOGTAG, "设置专辑图片URL失败: " + e.getMessage());
+            }
+
+            // 关键：将子容器添加到父容器的子容器列表中
+            albumContainer.addContainer(albumSubContainer);
+            albumChildCount++;
+
+            // 确保子容器存在于ContentTree中
+            if (!ContentTree.hasNode(albumFoldId)) {
+                ContentTree.addNode(albumFoldId, new ContentNode(albumFoldId, albumSubContainer));
+            } else {
+                // 更新ContentTree中的子容器引用
+                ContentTree.addNode(albumFoldId, new ContentNode(albumFoldId, albumSubContainer));
+            }
+
+            // 添加专辑内的歌曲到专辑子容器
+            addAlbumSongsToContainer(albumSubContainer, albumFoldId, albumInfo);
+        }
+
+        // 更新专辑容器的子容器计数
+        albumContainer.setChildCount(albumChildCount);
+    }
+
+    /**
+     * 向专辑容器添加真实歌曲
+     */
+    private void addAlbumSongsToContainer(Container container, String containerId, AlbumInfo albumInfo) {
+        List<AudioInfo> songs = albumInfo.getSongs();
+        if (songs == null || songs.isEmpty()) {
+            return;
+        }
+        Map<String, String> namesMap = new HashMap<>();
+        int trackCount = 0;
+        for (AudioInfo song : songs) {
+            boolean settingOpen = Settings.System.getInt(context.getContentResolver(), DSF_SETTING_NAME, 0) == 1;
+            if (!settingOpen) {
+                if (song.isDsf() || "dsf".equals(song.getExtension()) || "dff".equals(song.getExtension())) {
+                    continue;
+                }
+            }
+            if ("iso".equals(song.getExtension())) {
+                continue;
+            }
+            // 创建资源对象
+            long fileSize = 0;
+            // 创建音乐曲目项
+            String title = song.getTitle() != null ? song.getTitle() : "未知标题";
+            // 检查是否为CUE文件
+            String path = song.getPath() != null ? song.getPath() : "";
+            String filePath = !path.isEmpty() ? path : song.getUrl();
+            if (filePath == null) {
+                filePath = "";
+            }
+            if (namesMap.containsKey(filePath)) {
+                continue;
+            }
+            if (song.isCue()) {
+                title = song.getAlbum();
+            }
+            namesMap.put(filePath, title);
+            try {
+                fileSize = FileHelper.getFileSize(song.getPath());
+            } catch (Exception e) {
+                Log.e(LOGTAG, "获取文件大小失败: " + e.getMessage());
+            }
+
+            String uid = containerId + "_track" + (trackCount + 1);
+            String httpPath = "http://" + BaseApplication.getAddress() + "/" + uid;
+            Res res = new Res(
+                    new MimeType("audio", "mpeg"),
+                    fileSize, // 使用真实的文件大小
+                    httpPath // 使用真实的歌曲URI
+            );
+            if (song.getExtension() != null) {
+                title += ("." + song.getExtension());
+            }
+            MusicTrack track = new MusicTrack(
+                    uid,       // 唯一的项目ID
+                    containerId,                    // 父容器ID
+                    title, // 歌曲标题
+                    song.getArtist(),                     // 创作者
+                    albumInfo.getName(),                      // 专辑
+                    new PersonWithRole(song.getArtist(), "Performer"), // 带角色的表演者
+                    res                             // 资源对象
+            );
+
+            // 添加曲目到容器
+            container.addItem(track);
+            trackCount++;
+
+            // 添加曲目到内容树
+            ContentTree.addNode(track.getId(),
+                    new ContentNode(track.getId(), track, filePath));
+        }
+        namesMap.clear();
+        // 更新容器的子项计数
+        container.setChildCount(trackCount);
+    }
+
+
+    /**
+     * 为指定艺术家的专辑加载音乐
+     *
+     * @param container   目标容器
+     * @param containerId 容器ID
+     * @param albumInfo   专辑信息
+     * @param artistId    艺术家ID
+     * @param albumType   专辑类型艺术家0,作曲家传1，流派传2
+     */
+    private void loadAlbumMusicsForArtist(Container container, String containerId, AlbumInfo albumInfo, String artistId, int albumType) {
+        // 初始化一个集合来存储所有歌曲
+        List<AudioInfo> allSongs = new ArrayList<>();
+        // 开始自动分页加载
+        loadAlbumMusicsWithPagination(container, containerId, albumInfo, artistId, albumType, 0, 200, allSongs);
+    }
+
+    /**
+     * 带自动分页的专辑音乐加载
+     *
+     * @param container   目标容器
+     * @param containerId 容器ID
+     * @param albumInfo   专辑信息
+     * @param artistId    艺术家ID
+     * @param albumType   专辑类型艺术家0,作曲家传1，流派传2
+     * @param start       起始位置
+     * @param count       每页数量
+     * @param allSongs    存储所有歌曲的列表
+     */
+    private void loadAlbumMusicsWithPagination(Container container, String containerId, AlbumInfo albumInfo,
+                                               String artistId, int albumType, int start, int count,
+                                               List<AudioInfo> allSongs) {
+        ApiClient apiClient = ApiClient.getInstance();
+        if (apiClient == null) {
+            Log.e(LOGTAG, "loadAlbumMusicsWithPagination: apiClient为空，无法加载音乐");
+            return;
+        }
+
+        try {
+            // 准备请求参数
+            Map<String, String> params = new HashMap<>();
+            params.put("albumTypeId", String.valueOf(artistId));
+            params.put("albumType", String.valueOf(albumType));
+            params.put("id", String.valueOf(albumInfo.getId()));
+            params.put("start", String.valueOf(start));
+            params.put("count", String.valueOf(count));
+            params.put("needParse", String.valueOf(true));
+
+            // 调用API获取专辑歌曲
+            apiClient.getAlbumMusics(params, new ApiClient.ApiCallback<ApiClient.MusicResponse>() {
+                @Override
+                public void onSuccess(ApiClient.MusicResponse response) {
+                    if (response != null && response.getArray() != null) {
+                        List<AudioInfo> songList = response.getArray();
+                        Log.d(LOGTAG, "loadAlbumMusicsWithPagination: 获取到歌曲数量: " + songList.size() +
+                                ", start: " + start + ", count: " + count);
+
+                        // 将当前页歌曲添加到总列表
+                        allSongs.addAll(songList);
+
+                        // 检查是否还有更多数据
+                        if (response.getStart() + response.getCount() < response.getTotal()) {
+                            // 还有更多数据，继续加载下一页
+                            loadAlbumMusicsWithPagination(container, containerId, albumInfo, artistId, albumType,
+                                    start + count, count, allSongs);
+                            return;
+                        }
+
+                        // 所有数据加载完成
+                        Log.d(LOGTAG, "loadAlbumMusicsWithPagination: 所有歌曲加载完成，共 " + allSongs.size() + " 首");
+
+                        // 直接将所有歌曲添加到专辑容器中
+                        addApiMusicToContainer(allSongs, container);
+
+                        // 更新专辑容器的子项计数
+                        container.setChildCount(allSongs.size());
+
+                        // 更新ContentTree中的容器信息
+                        ContentTree.addNode(containerId, new ContentNode(containerId, container));
+                    }
+                }
+
+                @Override
+                public void onFailure(String errorMsg) {
+                    Log.e(LOGTAG, "loadAlbumMusicsWithPagination: 获取专辑歌曲失败: " + errorMsg);
+                }
+            });
+        } catch (Exception e) {
+            Log.e(LOGTAG, "loadAlbumMusicsWithPagination: 加载专辑歌曲时出错: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 将API获取的音乐添加到音频容器
+     */
+    public void addApiMusicToContainer(List<AudioInfo> audioInfoList, Container audioContainer) {
+        if (audioInfoList == null || audioInfoList.isEmpty()) {
+            return;
+        }
+
+        int addedCount = 0;
+        Map<String, String> namesMap = new HashMap<>();
+        for (AudioInfo audioInfo : audioInfoList) {
+            boolean settingOpen = Settings.System.getInt(this.context.getContentResolver(), DSF_SETTING_NAME, 0) == 1;
+            if (!settingOpen) {
+                if (audioInfo.isDsf() || "dsf".equals(audioInfo.getExtension()) || "dff".equals(audioInfo.getExtension())) {
+                    continue;
+                }
+            }
+            if ("iso".equals(audioInfo.getExtension())) {
+                continue;
+            }
+
+            try {
+                String title = audioInfo.getTitle() != null ? audioInfo.getTitle().trim() : "未知标题";
+                // 检查是否为CUE文件
+
+                // 处理CUE文件
+                String path = audioInfo.getPath() != null ? audioInfo.getPath() : "";
+                String filePath = !path.isEmpty() ? path : audioInfo.getUrl();
+                if (filePath == null) {
+                    filePath = "";
+                }
+                if (namesMap.containsKey(filePath)) {
+                    continue;
+                }
+                if (audioInfo.isCue()) {
+                    title = audioInfo.getAlbum();
+                }
+                namesMap.put(filePath, title);
+
+                // 非CUE文件，正常处理
+
+                // 创建MusicTrack对象
+                String trackId = "api_track_" + audioContainer.getId() + "_" + audioInfo.getId();
+                String artist = audioInfo.getArtist() != null ? audioInfo.getArtist() : "未知艺术家";
+                String album = audioInfo.getAlbum() != null ? audioInfo.getAlbum() : "未知专辑";
+                String httpPath = "http://" + BaseApplication.getAddress() + "/" + trackId;
+
+                // 创建资源对象
+                long fileSize = 0;
+                try {
+                    fileSize = FileHelper.getFileSize(filePath);
+                } catch (Exception e) {
+                    Log.e(LOGTAG, "获取文件大小失败: " + e.getMessage());
+                }
+                Res res = new Res(
+                        new MimeType("audio", "mpeg"),
+                        fileSize, // 使用真实的文件大小
+                        httpPath // 使用真实的歌曲URI
+                );
+                if (audioInfo.getExtension() != null) {
+                    title += ("." + audioInfo.getExtension());
+                }
+                // 创建音乐曲目项
+                MusicTrack musicTrack = new MusicTrack(
+                        trackId,                      // 唯一的项目ID
+                        audioContainer.getId(),       // 父容器ID
+                        title,                        // 标题
+                        artist,                       // 创作者
+                        album,                        // 专辑
+                        new PersonWithRole(artist, "Performer"), // 带角色的表演者
+                        res                           // 资源对象
+                );
+                if (fileSize == 0 || title.endsWith(".")) {
+                    Log.d(LOGTAG, "添加到单曲容器的歌曲路径: " + title + "!!!" + filePath);
+                }
+                // 设置图片URL
+                try {
+                    // 构建图片URL
+                    String imageUrl = String.format("http://127.0.0.1:9529/ZidooMusicControl/v2/getImage?id=%d&musicType=%d&type=4&target=0x010",
+                            audioInfo.getId(), audioInfo.getType());
+                    // 添加albumArtURI属性
+                    musicTrack.addProperty(new DIDLObject.Property.UPNP.ALBUM_ART_URI(
+                            new java.net.URI(imageUrl)));
+                } catch (Exception e) {
+                    Log.e(LOGTAG, "设置图片URL失败: " + e.getMessage());
+                }
+
+                // 添加曲目到容器
+                audioContainer.addItem(musicTrack);
+                addedCount++;
+
+                // 添加曲目到内容树
+                ContentTree.addNode(trackId,
+                        new ContentNode(trackId, musicTrack, filePath));
+
+            } catch (Exception e) {
+                Log.d(LOGTAG, "添加API音乐到容器失败: " + e.getMessage());
+            }
+        }
+        namesMap.clear();
+        // 更新容器的子项计数
+        audioContainer.setChildCount(audioContainer.getChildCount() + addedCount);
+    }
+
+
+}

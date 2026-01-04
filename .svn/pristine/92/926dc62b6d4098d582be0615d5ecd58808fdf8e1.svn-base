@@ -1,0 +1,148 @@
+-- Merging decision tree log ---
+manifest
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:2:1-52:12
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:2:1-52:12
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:2:1-52:12
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:2:1-52:12
+MERGED from [com.android.support:design:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\5bfcebeeaaebc37745dd7e69cd095993\transformed\design-22.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [com.android.support:appcompat-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\2f95f1a607518efccba59b3dc292ef08\transformed\appcompat-v7-22.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [com.android.support:cardview-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\9861e683dbd387e1b8343cb5514f0471\transformed\cardview-v7-22.2.0\AndroidManifest.xml:17:1-24:12
+MERGED from [com.android.support:recyclerview-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\9677e633c2a9d68c002ed9a566aa7ce0\transformed\recyclerview-v7-22.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [com.android.support:support-v4:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\906c1e1c546d9a2543816686a335722c\transformed\support-v4-22.2.0\AndroidManifest.xml:17:1-24:12
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:2:1-52:12
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:2:1-52:12
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:2:1-52:12
+	package
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:4:5-43
+		INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+		INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+	android:sharedUserId
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:5:5-46
+	android:versionName
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:7:5-30
+		INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+		INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+	xmlns:tools
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:3:5-51
+	xmlns:android
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:2:11-69
+	android:versionCode
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:6:5-28
+		INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+		INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+uses-permission#android.permission.INTERNET
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:9:5-67
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:9:22-64
+uses-permission#android.permission.ACCESS_WIFI_STATE
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:10:5-76
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:10:22-73
+uses-permission#android.permission.CHANGE_WIFI_MULTICAST_STATE
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:11:5-86
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:11:22-83
+uses-permission#android.permission.ACCESS_NETWORK_STATE
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:12:5-79
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:12:22-76
+uses-permission#android.permission.RECEIVE_BOOT_COMPLETED
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:13:5-81
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:13:22-78
+uses-permission#android.permission.WRITE_SETTINGS
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:14:5-16:47
+	tools:ignore
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:16:9-44
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:15:9-57
+application
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:18:5-50:19
+MERGED from [com.android.support:design:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\5bfcebeeaaebc37745dd7e69cd095993\transformed\design-22.2.0\AndroidManifest.xml:22:5-20
+MERGED from [com.android.support:design:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\5bfcebeeaaebc37745dd7e69cd095993\transformed\design-22.2.0\AndroidManifest.xml:22:5-20
+MERGED from [com.android.support:appcompat-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\2f95f1a607518efccba59b3dc292ef08\transformed\appcompat-v7-22.2.0\AndroidManifest.xml:22:5-20
+MERGED from [com.android.support:appcompat-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\2f95f1a607518efccba59b3dc292ef08\transformed\appcompat-v7-22.2.0\AndroidManifest.xml:22:5-20
+MERGED from [com.android.support:cardview-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\9861e683dbd387e1b8343cb5514f0471\transformed\cardview-v7-22.2.0\AndroidManifest.xml:22:5-20
+MERGED from [com.android.support:cardview-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\9861e683dbd387e1b8343cb5514f0471\transformed\cardview-v7-22.2.0\AndroidManifest.xml:22:5-20
+MERGED from [com.android.support:support-v4:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\906c1e1c546d9a2543816686a335722c\transformed\support-v4-22.2.0\AndroidManifest.xml:22:5-20
+MERGED from [com.android.support:support-v4:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\906c1e1c546d9a2543816686a335722c\transformed\support-v4-22.2.0\AndroidManifest.xml:22:5-20
+	android:supportsRtl
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:23:9-35
+	android:label
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:22:9-35
+	android:icon
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:21:9-43
+	android:allowBackup
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:20:9-35
+	android:theme
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:24:9-46
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:19:9-52
+activity#com.eversolo.upnpserver.dlna.activity.TransparentEntryActivity
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:25:9-33:20
+	android:exported
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:27:13-36
+	android:theme
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:28:13-52
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:26:13-62
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:29:13-32:29
+action#android.intent.action.MAIN
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:30:17-69
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:30:25-66
+category#android.intent.category.LAUNCHER
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:31:17-77
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:31:27-74
+service#org.fourthline.cling.android.AndroidUpnpServiceImpl
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:35:9-87
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:35:18-84
+service#com.eversolo.upnpserver.dlna.dms.EversoloLibraryService
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:36:9-63
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:36:18-60
+receiver#com.eversolo.upnpserver.dlna.dms.BootCompletedReceiver
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:39:9-48:20
+	android:enabled
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:41:13-35
+	android:exported
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:42:13-36
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:40:13-54
+intent-filter#action:name:android.intent.action.BOOT_COMPLETED+category:name:android.intent.category.DEFAULT
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:43:13-47:29
+action#android.intent.action.BOOT_COMPLETED
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:44:17-79
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:44:25-76
+category#android.intent.category.DEFAULT
+ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:46:17-76
+	android:name
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml:46:27-73
+uses-sdk
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+MERGED from [com.android.support:design:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\5bfcebeeaaebc37745dd7e69cd095993\transformed\design-22.2.0\AndroidManifest.xml:20:5-43
+MERGED from [com.android.support:design:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\5bfcebeeaaebc37745dd7e69cd095993\transformed\design-22.2.0\AndroidManifest.xml:20:5-43
+MERGED from [com.android.support:appcompat-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\2f95f1a607518efccba59b3dc292ef08\transformed\appcompat-v7-22.2.0\AndroidManifest.xml:20:5-43
+MERGED from [com.android.support:appcompat-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\2f95f1a607518efccba59b3dc292ef08\transformed\appcompat-v7-22.2.0\AndroidManifest.xml:20:5-43
+MERGED from [com.android.support:cardview-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\9861e683dbd387e1b8343cb5514f0471\transformed\cardview-v7-22.2.0\AndroidManifest.xml:20:5-43
+MERGED from [com.android.support:cardview-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\9861e683dbd387e1b8343cb5514f0471\transformed\cardview-v7-22.2.0\AndroidManifest.xml:20:5-43
+MERGED from [com.android.support:recyclerview-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\9677e633c2a9d68c002ed9a566aa7ce0\transformed\recyclerview-v7-22.2.0\AndroidManifest.xml:20:5-43
+MERGED from [com.android.support:recyclerview-v7:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\9677e633c2a9d68c002ed9a566aa7ce0\transformed\recyclerview-v7-22.2.0\AndroidManifest.xml:20:5-43
+MERGED from [com.android.support:support-v4:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\906c1e1c546d9a2543816686a335722c\transformed\support-v4-22.2.0\AndroidManifest.xml:20:5-43
+MERGED from [com.android.support:support-v4:22.2.0] C:\Users\Admin\.gradle\caches\transforms-3\906c1e1c546d9a2543816686a335722c\transformed\support-v4-22.2.0\AndroidManifest.xml:20:5-43
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+		INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+		ADDED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml
+		INJECTED from E:\demo\DlnaMusic\upnp\upnpserver\src\main\AndroidManifest.xml

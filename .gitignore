@@ -1,0 +1,82 @@
+# Gradle project
+.gradle/
+build/
+
+# Android build outputs
+*.apk
+*.aar
+*.ap_*.aab
+
+# Android Studio
+.idea/
+*.iml
+*.hprof
+.cxx/
+
+# Eclipse
+*.class
+*.log
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Local configuration files
+local.properties
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Package manager
+node_modules/
+jspm_packages/
+
+# Editor directories and files
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Keystore files
+*.jks
+*.keystore
+
+# Proguard mapping files
+*.mapping
+*.jks
+*.keystore
+
+# Module specific build directories
+app/build/
+upnpserver/build/
+
+# Gradle wrapper
+!.gradle/wrapper/gradle-wrapper.jar

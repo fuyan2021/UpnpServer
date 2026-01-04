@@ -1,0 +1,28 @@
+{
+    "logs": [
+        {
+            "outputFile": "E:\\demo\\DlnaMusic\\upnp\\upnpserver\\build\\intermediates\\incremental\\mergeDebugResources\\merged.dir\\values-night-v8\\values-night-v8.xml",
+            "map": [
+                {
+                    "source": "E:\\demo\\DlnaMusic\\upnp\\upnpserver\\src\\main\\res\\values-night\\themes.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "102",
+                        "endLines": "5",
+                        "endColumns": "12",
+                        "endOffsets": "274"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "5",
+                        "endColumns": "12",
+                        "endOffsets": "224"
+                    }
+                }
+            ]
+        }
+    ]
+}
